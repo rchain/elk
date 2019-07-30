@@ -1,0 +1,84 @@
+---
+
+- name: Create {{ service_user }} user
+  become: yes
+  user:
+    name: "{{ service_user }}"
+    create_home: no
+    groups: docker
+
+- name: Create runtime dir
+  become: yes
+  file:
+    path: "{{ runtime_dir }}"
+    state: directory
+    group: "{{ deployers_group }}"
+    mode: u=rwx,g=rwx,o=r
+
+- name: Copy runtime files
+  become: yes
+  synchronize:
+    src: "{{ playbook_dir }}/.."
+    dest: "{{ runtime_dir }}"
+    archive: no
+    checksum: yes
+    recursive: yes
+    delete: yes
+    perms: no
+    owner: no
+    group: no
+    rsync_opts: --exclude=.git
+
+- name: Render .service file
+  template:
+    src: logstash.service.j2
+    dest: "{{ runtime_dir }}/logstash.service"
+
+- name: Render .conf file
+  become: yes
+  template:
+    src: logstash.conf.j2
+    dest: "{{ runtime_dir }}/runtime/logstash/pipeline/logstash.conf"
+
+- name: Fix attibutes
+  become: yes
+  file:
+    path: "{{ runtime_dir }}"
+    owner: "{{ service_user }}"
+    recurse: yes
+
+- name: Symlink .service file
+  become: yes
+  file:
+    src: "{{ runtime_dir }}/logstash.service"
+    dest: /etc/systemd/system/logstash.service
+    state: link
+
+- name: Symlink .target file
+  become: yes
+  file:
+    src: "{{ runtime_dir }}/runtime/elk.target"
+    dest: /etc/systemd/system/elk.target
+    state: link
+
+- name: Register systemd unit
+  become: yes
+  systemd:
+    daemon_reload: true
+
+- name: Run systemd unit at boot
+  become: yes
+  systemd:
+    name: "{{ systemd_service_name }}"
+    enabled: yes
+
+- name: Create a shared docker network
+  become: yes
+  shell: docker network create --driver bridge elk
+  ignore_errors: True
+
+- name: Restart systemd service
+  become: yes
+  systemd:
+    name: "{{ systemd_service_name }}"
+    state: restarted

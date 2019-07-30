@@ -1,0 +1,18 @@
+version: '2.2'
+services:
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.2.0
+    volumes:
+      - ./pipeline:/usr/share/logstash/pipeline:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    ports:
+      - "5000:5000"
+      - "9600:9600"
+    networks:
+      - elk
+
+networks:
+  elk:
+    external:
+      name: elk

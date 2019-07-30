@@ -1,0 +1,11 @@
+[Unit]
+Requires=docker.service
+After=docker.service
+
+[Service]
+User={{ service_user }}
+ExecStart=/usr/bin/docker-compose -f {{ runtime_dir }}/runtime/logstash/docker-compose.yml up
+ExecStopPost=/usr/bin/docker-compose -f {{ runtime_dir }}/runtime/logstash/docker-compose.yml down
+
+[Install]
+WantedBy=elk.target
