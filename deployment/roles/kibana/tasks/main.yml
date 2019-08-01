@@ -34,6 +34,12 @@
     src: kibana.service.j2
     dest: "{{ runtime_dir }}/kibana.service"
 
+- name: Render config file
+  become: yes
+  template:
+    src: kibana.yml.j2
+    dest: "{{ runtime_dir }}/runtime/kibana/kibana.yml"
+
 - name: Fix attibutes
   become: yes
   file:
