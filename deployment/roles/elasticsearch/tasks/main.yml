@@ -86,3 +86,44 @@
   systemd:
     name: "{{ systemd_service_name }}"
     state: restarted
+
+- name: Add Elastic PGP key
+  become: yes
+  apt_key:
+    url: https://packages.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Add Elastic APT repository
+  become: yes
+  apt_repository:
+    repo: "deb [arch=amd64] https://packages.elastic.co/curator/5/debian stable main"
+    state: present
+    update_cache: yes
+
+- name: Install Curator package
+  become: yes
+  apt:
+    name: elasticsearch-curator
+
+- name: Install cron package
+  become: yes
+  apt:
+    name: anacron
+
+- name: Render Curator config file
+  template:
+    src: curator.yml
+    dest: "{{ runtime_dir }}/"
+
+- name: Install Curator cron job
+  become: yes
+  template:
+    src: expire-indexes
+    dest: /etc/cron.daily/
+    mode: u+x,g+x,o+x
+
+- name: Reload cron server to pick up new cron job
+  become: yes
+  systemd:
+    name: cron
+    state: restarted
